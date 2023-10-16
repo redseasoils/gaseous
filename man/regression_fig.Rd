@@ -29,7 +29,58 @@ regression_fig(
 )
 }
 \arguments{
-\item{rr_vjust}{}
+\item{data}{A data frame. Should contain one row per experimental unit.}
+
+\item{x_var}{Name of column in \code{data} to be used as the x variable.}
+
+\item{y_var}{Name of column in \code{data} to be used as the y variable.}
+
+\item{group_var}{Optional. Name of column in \code{data} to be used as a
+grouping variable. One regression line will appear per group.}
+
+\item{facet_rows_var}{Optional. Name of column in \code{data} to be used as
+\code{rows} argument in \code{\link[ggplot2]{facet_grid}()}. Set to
+\code{NULL} to remove facet rows. Defaults to \code{gas}.}
+
+\item{facet_cols_var}{Optional. Name of column in \code{data} to be used as
+\code{cols} argument in \code{\link[ggplot2]{facet_grid}()}. Set to
+\code{NULL} to remove facet columns. Defaults to \code{site}.}
+
+\item{labeller}{Passed to \code{\link[ggplot2]{labeller}()}. A labeller
+object containing specifications to be used in
+\code{\link[ggplot2]{facet_grid}()}. See \code{?\link[ggplot2]{facet_grid}}
+for details.}
+
+\item{group_colors}{Optional. Color palette for \code{group_var}. If
+\code{group_var} is provided but \code{group_colors} is missing,
+\code{\link[RColorBrewer]{brewer.pal}()}'s 'Set3' will be used as the color
+palette.}
+
+\item{x_lab}{String. X axis label. Defaults to empty.}
+
+\item{y_lab}{String. Y axis label. Defaults to empty.}
+
+\item{color_lab}{String. Color legend title. Defaults to empty.}
+
+\item{text_size}{Size of text on plot. Defaults to \code{14}.}
+
+\item{point_shape}{Integer. Shape of points. Defaults to \code{16}.}
+
+\item{point_alpha}{Numeric 0-1. Opacity of points. Defaults to \code{0.5}.}
+
+\item{legend_position}{String. Position of legend on plot. Options \code{'top'}, \code{'left'}, \code{'right'}, \code{'bottom'}, or \code{'none'}. Defaults to \code{'top'}.}
+
+\item{eqn_x}{Numeric. X axis position of regression equation. Defaults to \code{0}.}
+
+\item{eqn_y}{Numeric. Y axis position of regression equation. Defaults to \code{Inf}.}
+
+\item{eqn_vjust}{Numeric. Vertical justification of regression equation. Defaults to \code{1.5}.}
+
+\item{rr_x}{Numeric. X axis position of R\eqn{^2} and p-value. Defaults to \code{0}.}
+
+\item{rr_y}{Numeric. Y axis position of R\eqn{^2} and p-value. Defaults to \code{Inf}.}
+
+\item{rr_vjust}{Numeric. Vertical justification of R\eqn{^2} and p-value. Defaults to \code{1}.}
 }
 \value{
 A plot

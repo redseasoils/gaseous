@@ -1,30 +1,40 @@
 #' Scatterplot Figure with Regression Line, Equation, and Stats
 #'
-#' @param data
-#' @param x_var
-#' @param y_var
-#' @param group_var
-#' @param facet_rows_var
-#' @param facet_cols_var
-#' @param labeller
-#' @param group_colors
-#' @param x_lab
-#' @param y_lab
-#' @param color_lab
-#' @param text_size
-#' @param point_shape
-#' @param point_alpha
-#' @param legend_position
-#' @param eqn_x
-#' @param eqn_y
-#' @param eqn_vjust
-#' @param rr_x
-#' @param rr_y
-#' @param rr_vjust
+#' @param data A data frame. Should contain one row per experimental unit.
+#' @param x_var Name of column in \code{data} to be used as the x variable.
+#' @param y_var Name of column in \code{data} to be used as the y variable.
+#' @param group_var Optional. Name of column in \code{data} to be used as a
+#'   grouping variable. One regression line will appear per group.
+#' @param facet_rows_var Optional. Name of column in \code{data} to be used as
+#'   \code{rows} argument in \code{\link[ggplot2]{facet_grid}()}. Set to
+#'   \code{NULL} to remove facet rows. Defaults to \code{gas}.
+#' @param facet_cols_var Optional. Name of column in \code{data} to be used as
+#'   \code{cols} argument in \code{\link[ggplot2]{facet_grid}()}. Set to
+#'   \code{NULL} to remove facet columns. Defaults to \code{site}.
+#' @param labeller Passed to \code{\link[ggplot2]{labeller}()}. A labeller
+#'   object containing specifications to be used in
+#'   \code{\link[ggplot2]{facet_grid}()}. See \code{?\link[ggplot2]{facet_grid}}
+#'   for details.
+#' @param group_colors Optional. Color palette for \code{group_var}. If
+#'   \code{group_var} is provided but \code{group_colors} is missing,
+#'   \code{\link[RColorBrewer]{brewer.pal}()}'s 'Set3' will be used as the color
+#'   palette.
+#' @param x_lab String. X axis label. Defaults to empty.
+#' @param y_lab String. Y axis label. Defaults to empty.
+#' @param color_lab String. Color legend title. Defaults to empty.
+#' @param text_size Size of text on plot. Defaults to \code{14}.
+#' @param point_shape Integer. Shape of points. Defaults to \code{16}.
+#' @param point_alpha Numeric 0-1. Opacity of points. Defaults to \code{0.5}.
+#' @param legend_position String. Position of legend on plot. Options \code{'top'}, \code{'left'}, \code{'right'}, \code{'bottom'}, or \code{'none'}. Defaults to \code{'top'}.
+#' @param eqn_x Numeric. X axis position of regression equation. Defaults to \code{0}.
+#' @param eqn_y Numeric. Y axis position of regression equation. Defaults to \code{Inf}.
+#' @param eqn_vjust Numeric. Vertical justification of regression equation. Defaults to \code{1.5}.
+#' @param rr_x Numeric. X axis position of R\eqn{^2} and p-value. Defaults to \code{0}.
+#' @param rr_y Numeric. Y axis position of R\eqn{^2} and p-value. Defaults to \code{Inf}.
+#' @param rr_vjust Numeric. Vertical justification of R\eqn{^2} and p-value. Defaults to \code{1}.
 #'
 #' @return A plot
 #' @export
-#'
 #'
 #' @importFrom dplyr `%>%` select mutate pull
 #' @importFrom RColorBrewer brewer.pal
