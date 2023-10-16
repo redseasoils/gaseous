@@ -1,26 +1,25 @@
 #' Import Chamber Volume Data
 #'
-#' @description
-#' Imports and cleans up chamber volume Excel spreadsheets contained in
-#' `./data/raw_data/chamber_volume`, where `.` is the current working directory
-#' (which should be the main GHG folder for your project).
+#' @description Imports and cleans up chamber volume Excel spreadsheets
+#' contained in \code{path}.
 #'
+#' @param path File path in which to look for chamber volume files. Defaults to
+#'   \code{"data/00_raw/chamber_volume"}.
 #'
 #' @return A data frame of all chamber volume data.
 #' @export
 #'
-import_chamber_volume <- function() {
-  cat(
-    "\n\nLooking for files in ", getwd(), "/data/raw_data/chamber_volume",
-    sep = ""
-  )
+#' @importFrom readxl read_xlsx excel_sheets
+#' @importFrom dplyr `%>%` mutate across bind_rows select distinct filter n
+#' @importFrom stringr str_sub str_split_i
+#'
+import_chamber_volume <- function(path = 'data/00_raw/chamber_volume') {
 
-  require(dplyr, quietly = TRUE)
-  require(readxl, quietly = TRUE)
+  cat("\n\nLooking for files in ", getwd(), "/", path, "\n\n", sep = "")
 
   # Find files to import
   vol_files <- list.files(
-    path = "data/raw_data/chamber_volume",
+    path = path,
     recursive = T,
     pattern = "\\.xlsx",
     ignore.case = T,
@@ -42,10 +41,10 @@ import_chamber_volume <- function() {
     vol <- list()
     file <- files[n]
 
-    if (length(excel_sheets(file)) == 1) {
-      vol[[file]] <- read_xlsx(file)
+    if (length(readxl::excel_sheets(file)) == 1) {
+      vol[[file]] <- readxl::read_xlsx(file)
     } else {
-      vol[[file]] <- read_xlsx(file, sheet = "Chamber Volume")
+      vol[[file]] <- readxl::read_xlsx(file, sheet = "Chamber Volume")
     }
 
     if (n == length(files)) {
@@ -117,15 +116,15 @@ import_chamber_volume <- function() {
   vol <- dplyr::bind_rows(vol_dat, .id = "path") %>%
     # Add columns for date and site and change class of plot column to factor
     dplyr::mutate(
-      Date = as.Date(str_sub(path, -13, -6), "%Y%m%d"),
-      site = str_split_i(path, "/", -2) %>% factor(),
+      Date = as.Date(stringr::str_sub(path, -13, -6), "%Y%m%d"),
+      site = stringr::str_split_i(path, "/", -2) %>% factor(),
       plot = factor(plot), .before = "plot"
     ) %>%
     dplyr::select(-path) %>%
     dplyr::distinct()
 
   # Make sure each date/site/plot has only one unique entry of volume data
-  multiple_vols <- vol %>% dplyr::filter(n() > 1, .by = c(site, Date, plot))
+  multiple_vols <- vol %>% dplyr::filter(dplyr::n() > 1, .by = c(site, Date, plot))
   if (nrow(multiple_vols) > 0) {
     stop(paste(
       "Multiple chamber volume files found at:\n",

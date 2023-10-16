@@ -4,17 +4,18 @@
 \alias{include_n}
 \title{Count Observations Not Yet Excluded from Processing}
 \usage{
-include_n(data, exclude)
+include_n(data, excl_var)
 }
 \arguments{
 \item{data}{A data frame containing a logical column tracking processing
 exclusions by observation.}
 
-\item{exclude}{Name of logical column which tracks processing exclusions.
-Defaults to `exclude_obs`.}
+\item{excl_var}{Name of logical column which tracks processing exclusions.
+Defaults to \code{exclude_obs}.}
 }
 \value{
-Integer count of rows in `data` where `exclude` is `FALSE`.
+Integer count of rows in \code{data} where \code{exclude} is
+  \code{FALSE}.
 }
 \description{
 Count Observations Not Yet Excluded from Processing

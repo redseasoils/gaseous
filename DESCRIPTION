@@ -14,7 +14,10 @@ Imports:
     dplyr,
     purrr,
     stringr,
-    tibble
+    tibble,
+    cowplot,
+    ggpubr,
+    readxl
 RoxygenNote: 7.2.3
 URL: https://github.com/redseasoils/gaseous
 BugReports: https://github.com/redseasoils/gaseous/issues

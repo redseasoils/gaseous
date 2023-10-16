@@ -1,12 +1,15 @@
 #' Count Observations Not Yet Excluded from Processing
 #'
 #' @param data A data frame containing a logical column tracking processing
-#' exclusions by observation.
-#' @param exclude Name of logical column which tracks processing exclusions.
-#' Defaults to `exclude_obs`.
+#'   exclusions by observation.
+#' @param excl_var Name of logical column which tracks processing exclusions.
+#'   Defaults to \code{exclude_obs}.
 #'
-#' @return Integer count of rows in `data` where `exclude` is `FALSE`.
+#' @return Integer count of rows in \code{data} where \code{exclude} is
+#'   \code{FALSE}.
 #' @export
+#'
+#' @importFrom dplyr `%>%` pull ensym
 #'
 #' @examples
 #'
@@ -16,9 +19,9 @@
 #' )
 #' include_n(dat)
 #'
-include_n <- function(data, exclude){
-  require(dplyr, quietly = TRUE)
-  n <- data %>% dplyr::pull(!!dplyr::ensym(exclude)) %>% sum(!.)
-  return(as.integer(n))
+include_n <- function(data, excl_var){
+  vec <- data %>% dplyr::pull({{ excl_var }})
+  n_false <- sum(vec == FALSE)
+  return(as.integer(n_false))
 }
 

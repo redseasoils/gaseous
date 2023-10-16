@@ -1,38 +1,40 @@
 #' Detect Issues that Will Affect Gasmet TXT File Import
 #'
-#' @description
-#' Detects issues in TXT files from the Gasmet such as missing columns,
-#' mismatches between dates in data columns and file/folder names, multiple
-#' dates contained in the same file, etc. Uses `cat()` to write a message
-#' with details about detected issues (and if they need to be resolved for
-#' processing to continue). Does not fix the issues - that must be done manually
-#' by the user.
+#' @description Detects issues in TXT files from the Gasmet such as missing
+#'   columns, mismatches between dates in data columns and file/folder names,
+#'   multiple dates contained in the same file, etc. Uses \code{\link{cat}()}
+#'   to write a message with details about detected issues (and if they need to
+#'   be resolved for processing to continue). Does not fix the issues - that
+#'   must be done manually by the user.
 #'
 #'
 #' @param dfls List of data frames, each list item containing data from a single
-#' site/date
-#' @param check_co2 Logical. Whether or not to check issues in CO~2~ related
-#' columns. Defaults to `TRUE`.
-#' @param check_n2o Logical. Whether or not to check issues in N~2~O related
-#' columns. Defaults to `TRUE`.
-#' @param check_ch4 Logical. Whether or not to check issues in CH~4~ related
-#' columns. Defaults to `TRUE`.
-#' @param check_nh3 Logical. Whether or not to check issues in NH~3~ related
-#' columns. Defaults to `TRUE`.
+#'   site/date
+#' @param check_co2 Logical. Whether or not to check issues in CO\eqn{_2}
+#'   related columns. Defaults to \code{TRUE}.
+#' @param check_n2o Logical. Whether or not to check issues in N\eqn{_2}O
+#'   related columns. Defaults to \code{TRUE}.
+#' @param check_ch4 Logical. Whether or not to check issues in CH\eqn{_4}
+#'   related columns. Defaults to \code{TRUE}.
+#' @param check_nh3 Logical. Whether or not to check issues in NH\eqn{_3}
+#'   related columns. Defaults to \code{TRUE}.
 #' @param check_co Logical. Whether or not to check issues in CO related
-#' columns. Defaults to `TRUE`.
-#' @param ...
+#'   columns. Defaults to \code{FALSE}.
+#' @param ... Passed to \code{\link{cat}()} in final message. Use \code{file =
+#'   'file/path.txt'} to write final message to a text file.
 #'
 #' @return Message with details about fatal and non-fatal issues. Writes to the
-#' console by default. When `file` is specified, writes to that file.
+#' console by default. When \code{file} is specified, writes to that file.
 #' @export
+#'
+#' @importFrom purrr map map2
+#' @importFrom dplyr mutate ensym filter bind_rows if_else distinct rowwise
+#'   ungroup `%>%`
+#' @importFrom stringr str_detect
 #'
 gasmet_file_issues <- function(
     dfls, check_co2 = TRUE, check_n2o = TRUE, check_ch4 = TRUE,
-    check_nh3 = TRUE, check_co = TRUE, ...) {
-
-  require(purrr, quietly = TRUE)
-  require(dplyr, quietly = TRUE)
+    check_nh3 = TRUE, check_co = FALSE, ...) {
 
   expected_nms <- c(
     "Date", "Time", "Carbon.dioxide.CO2", "Nitrous.oxide.N2O",
@@ -40,6 +42,8 @@ gasmet_file_issues <- function(
   )
 
   cat('Checking for columns:\n\n', paste(expected_nms, collapse = '\n'))
+
+  stopifnot("dfls must contain at least one data frame" = length(dfls) > 0)
 
   nms <- purrr::map(dfls, names)
   nms <- purrr::map(nms, ~ expected_nms[!expected_nms %in% .x])
@@ -156,7 +160,7 @@ gasmet_file_issues <- function(
                                make_missing_message("Carbon.monoxide.CO"))
   }
 
-  if (str_detect(nonfatal_message, "[:alnum:]")) {
+  if (stringr::str_detect(nonfatal_message, "[:alnum:]")) {
     nonfatal_message <- paste0(
       "The following issues do NOT need to be resolved for processing to ",
       "function, but should be noted:\n\n",
