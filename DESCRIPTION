@@ -1,11 +1,10 @@
 Package: gaseous
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Greenhouse Gas Data Workflow Functions for the Margenot Lab
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Ezra Moses
+Maintainer: Ezra Moses <moses8@illinois.edu>
+Description: Contains functions and a project template specifically designed for greenhouse gas data retrieved from the Gasmet. For use within the lab of Dr. Andrew Margenot at the University of Illinois Urbana-Champaign.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

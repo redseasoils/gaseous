@@ -12,7 +12,7 @@ time_series(
   lines_group_var = treatment,
   facet_rows_var = gas,
   facet_cols_var = site,
-  labeller = NULL,
+  labeller = "label_value",
   line_colors,
   x_lab = "Date",
   y_lab = "",

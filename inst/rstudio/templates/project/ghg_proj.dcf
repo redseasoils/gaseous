@@ -1,0 +1,17 @@
+Binding: ghg_proj
+Title: New GHG Project
+Icon: ghg_proj_icon.png
+OpenFiles: INDEX
+
+Parameter: existing_data
+Widget: FileInput
+Label: (optional) To transfer raw data from the first version of the GHG data workflow, select any .txt file within data/raw_data/gas_concentrations/site/date here. Any site or date is ok.
+Default:
+Position: left
+
+Parameter: sites
+Widget: TextInput
+Label: Enter site name(s) separated by commas (e.g. Urbana, Champaign). Optional if existing data folder was specified above.
+Default:
+Position: left
+

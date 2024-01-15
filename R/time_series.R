@@ -51,7 +51,7 @@ time_series <- function(
   lines_group_var = treatment,
   facet_rows_var = gas,
   facet_cols_var = site,
-  labeller = NULL,
+  labeller = "label_value",
   line_colors,
   x_lab = 'Date',
   y_lab = '',
@@ -69,7 +69,13 @@ time_series <- function(
   is_facet_cols <- length(facet_rows_char) == 0 && length(facet_cols_char) > 0
 
   n_colors <- data %>% dplyr::pull({{ lines_group_var }}) %>% unique %>% length
-  if (missing(line_colors)) line_colors <- RColorBrewer::brewer.pal(n_colors, 'Set3')
+  if (missing(line_colors)) {
+    if (n_colors == 0) {
+      line_colors <- "#8DD3C7"
+    } else {
+    line_colors <- RColorBrewer::brewer.pal(n_colors, 'Set3')
+    }
+  }
 
   data <- data %>% dplyr::mutate(
     "{{date_var}}" := as.Date({{ date_var }})
@@ -107,21 +113,21 @@ time_series <- function(
         rows = ggplot2::vars({{ facet_rows_var }}),
         cols = ggplot2::vars({{ facet_cols_var }}),
         scales = 'free_y',
-        labeller = labeller
+        labeller = ifelse(missing(labeller), label_value, labeller)
       )
   } else if (is_facet_rows) {
     ts <- ts +
       ggplot2::facet_grid(
         rows = ggplot2::vars({{ facet_rows_var }}),
         scales = 'free_y',
-        labeller = labeller
-        )
+        labeller = ifelse(missing(labeller), label_value, labeller)
+      )
   } else if (is_facet_cols) {
     ts <- ts +
       ggplot2::facet_grid(
         cols = ggplot2::vars({{ facet_cols_var }}),
         scales = 'free_y',
-        labeller = labeller
+        labeller = ifelse(missing(labeller), label_value, labeller)
       )
   }
 

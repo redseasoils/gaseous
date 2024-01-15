@@ -221,6 +221,9 @@ ppm_seconds_lm <- function(
 #' @rdname ppm_seconds_lm
 #' @export
 #'
+#' @importFrom purrr map
+#' @importFrom dplyr `%>%` mutate select filter anti_join rows_update
+#'
 ppm_seconds_lm_optim <- function(
     data,
     gas_var = Carbon.dioxide.CO2,
@@ -236,22 +239,15 @@ ppm_seconds_lm_optim <- function(
   # optimization max iterations
   max_it <- ifelse(nrow(data) < 100, 1000, nrow(data) * 10)
 
-  optim <- optim(
-    # use existing column as starting values
-    par = as.integer(data %>% dplyr::pull({{ excl_var }})),
-
-    # optimization functions and their additional arguments
-    fn = calib_optim, gr = calib_range,
-    data = data,
-    excl_var = dplyr::ensym(excl_var),
-    min_n = min_n,
-
-    method = "SANN", control = list(maxit = max_it, fnscale = 1, trace = 10)
-  )
+  # manual optimization
+  optim_range <- purrr::map(1:max_it, ~ calib_range(data, {{excl_var}}, min_n))
+  optim_calib <- purrr::map(optim_range, ~calib_optim(.x, data, {{excl_var}}, min_n)) %>% unlist()
+  optim_loc <- which.min(optim_calib)
+  optim_value <- optim_calib[optim_loc]
 
   # failure case 3 : optim failed to build model with rsq >= 0.98, optim
   # returns 10000000
-  if (optim$value == 10000000) {
+  if (optim_value == 10000000) {
     result <- data %>%
       dplyr::mutate(
         "{{excl_var}}" := TRUE,
@@ -263,8 +259,9 @@ ppm_seconds_lm_optim <- function(
 
     # success case
   } else {
+    new_exclude <- optim_range[[optim_loc]] %>% as.logical()
 
-    new_exclude <- as.logical(optim$par)
+    # new_exclude <- as.logical(optim$par)
 
     new_data <- data %>% dplyr::mutate("{{excl_var}}" := new_exclude)
 
@@ -298,6 +295,70 @@ ppm_seconds_lm_optim <- function(
 
     return(new_data)
   }
+  #
+  #
+  # optim <- optim(
+  #   # use existing column as starting values
+  #   par = as.integer(data %>% dplyr::pull({{ excl_var }})),
+  #
+  #   # optimization functions and their additional arguments
+  #   fn = calib_optim, gr = calib_range,
+  #   data = data,
+  #   excl_var = dplyr::ensym(excl_var),
+  #   min_n = min_n,
+  #
+  #   method = "SANN", control = list(maxit = max_it, fnscale = 1, trace = 10)
+  # )
+  #
+  # # failure case 3 : optim failed to build model with rsq >= 0.98, optim
+  # # returns 10000000
+  # if (optim$value == 10000000) {
+  #   result <- data %>%
+  #     dplyr::mutate(
+  #       "{{excl_var}}" := TRUE,
+  #       co2_rsq = NA, co2_slope = NA, co2_intercept = NA
+  #     )
+  #   result <- attr_update(result, attr_var = {{ attr_var }},
+  #                         prefix = prefix, attr_code = '04')
+  #   return(result)
+  #
+  #   # success case
+  # } else {
+  #
+  #   new_exclude <- as.logical(optim$par)
+  #
+  #   new_data <- data %>% dplyr::mutate("{{excl_var}}" := new_exclude)
+  #
+  #   gas_char <- deparse(substitute(gas_var))
+  #   seconds_char <- deparse(substitute(seconds_var))
+  #
+  #   mod <- lm(f('%s ~ %s', c(gas_char, seconds_char)),
+  #             data = new_data[!new_exclude,],
+  #             na.action = na.exclude)
+  #
+  #
+  #   # add attributes to observations marked for exclusion in the optimization
+  #   new_excl <- new_data %>%
+  #     dplyr::filter({{ excl_var }} == TRUE) %>%
+  #     dplyr::anti_join(data, by = names(data))
+  #   if (nrow(new_excl) > 0) {
+  #     new_excl <- attr_update(new_excl, attr_var = {{ attr_var }},
+  #                             prefix = prefix, attr_code = '03')
+  #   }
+  #
+  #   by_cols <- new_data %>%
+  #     dplyr::select(-{{ excl_var }}, -{{ attr_var }}) %>%
+  #     names()
+  #   new_data <- new_data %>% dplyr::rows_update(new_excl, by = by_cols)
+  #
+  #   new_data <- new_data %>% dplyr::mutate(
+  #     co2_rsq = summary(mod)$r.squared,
+  #     co2_intercept = coef(mod)[['(Intercept)']],
+  #     co2_slope = coef(mod)[[seconds_char]]
+  #   )
+  #
+  #   return(new_data)
+  # }
 }
 
 

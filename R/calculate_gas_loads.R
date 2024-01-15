@@ -22,6 +22,9 @@
 #'   to \code{plot}.
 #' @param method Defaults to \code{'AUC'} (area under the curve), currently the
 #'   only option. Linear interpolation methods to be added.
+#' @param per_hour Logical. Are the units of \code{gas_vars} per hour
+#'   (\code{per_hour = TRUE}) or per day (\code{per_hour = FALSE}). Defaults to
+#'   \code{FALSE}.
 #'
 #' @return \code{data} with new columns for gas loads
 #' @export
@@ -38,7 +41,7 @@ calculate_gas_loads <- function(
     site_var = site,
     plot_var = plot,
     method = 'AUC',
-    by_hour = FALSE
+    per_hour = FALSE
 ) {
 
   gas_vars_char <- data %>% dplyr::select({{ gas_vars }}) %>% names()
@@ -70,7 +73,7 @@ calculate_gas_loads <- function(
     dplyr::mutate(
       hours = lubridate::interval(
         min({{date_var}}), {{date_var}}
-        ) %/% lubridate::days(1) * ifelse(by_hour, 24, 1)) %>%
+        ) %/% lubridate::days(1) * 24) %>%
     dplyr::ungroup()
 
   # Calculate difference in hours between sampling dates
@@ -92,7 +95,7 @@ calculate_gas_loads <- function(
     dplyr::mutate(
       dplyr::across(
         {{ gas_vars }},
-        ~ (.x * hours_mult) / 24,
+        ~ (.x * hours_mult) / ifelse(per_hour, 1, 24),
         .names = '{.col}_load')
     ) %>%
     dplyr::ungroup()

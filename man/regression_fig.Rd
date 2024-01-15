@@ -11,7 +11,7 @@ regression_fig(
   group_var,
   facet_rows_var = gas,
   facet_cols_var = site,
-  labeller = NULL,
+  labeller = "label_value",
   group_colors,
   x_lab = "",
   y_lab = "",
@@ -46,10 +46,10 @@ grouping variable. One regression line will appear per group.}
 \code{cols} argument in \code{\link[ggplot2]{facet_grid}()}. Set to
 \code{NULL} to remove facet columns. Defaults to \code{site}.}
 
-\item{labeller}{Passed to \code{\link[ggplot2]{labeller}()}. A labeller
+\item{labeller}{Passed to \code{\link[ggplot2]{facet_grid}()}. A labeller
 object containing specifications to be used in
-\code{\link[ggplot2]{facet_grid}()}. See \code{?\link[ggplot2]{facet_grid}}
-for details.}
+\code{\link[ggplot2]{labeller}()}. See \code{?\link[ggplot2]{labeller}}
+for details. Defaults to \code{"label_value"}.}
 
 \item{group_colors}{Optional. Color palette for \code{group_var}. If
 \code{group_var} is provided but \code{group_colors} is missing,

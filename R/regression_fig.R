@@ -11,10 +11,10 @@
 #' @param facet_cols_var Optional. Name of column in \code{data} to be used as
 #'   \code{cols} argument in \code{\link[ggplot2]{facet_grid}()}. Set to
 #'   \code{NULL} to remove facet columns. Defaults to \code{site}.
-#' @param labeller Passed to \code{\link[ggplot2]{labeller}()}. A labeller
+#' @param labeller Passed to \code{\link[ggplot2]{facet_grid}()}. A labeller
 #'   object containing specifications to be used in
-#'   \code{\link[ggplot2]{facet_grid}()}. See \code{?\link[ggplot2]{facet_grid}}
-#'   for details.
+#'   \code{\link[ggplot2]{labeller}()}. See \code{?\link[ggplot2]{labeller}}
+#'   for details. Defaults to \code{"label_value"}.
 #' @param group_colors Optional. Color palette for \code{group_var}. If
 #'   \code{group_var} is provided but \code{group_colors} is missing,
 #'   \code{\link[RColorBrewer]{brewer.pal}()}'s 'Set3' will be used as the color
@@ -48,7 +48,7 @@ regression_fig <- function(
     group_var,
     facet_rows_var = gas,
     facet_cols_var = site,
-    labeller = NULL,
+    labeller = "label_value",
     group_colors,
     x_lab = '',
     y_lab = '',
@@ -78,7 +78,7 @@ regression_fig <- function(
       n_colors <- data %>% dplyr::pull({{ group_var }}) %>% unique %>% length
       group_colors <- RColorBrewer::brewer.pal(n_colors, 'Set3')
     } else{
-      group_colors <- NA_character_
+      group_colors <- "#8DD3C7"
     }
 
   }

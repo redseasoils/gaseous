@@ -12,7 +12,7 @@ calculate_gas_loads(
   site_var = site,
   plot_var = plot,
   method = "AUC",
-  by_hour = FALSE
+  per_hour = FALSE
 )
 }
 \arguments{
@@ -34,6 +34,10 @@ to \code{plot}.}
 
 \item{method}{Defaults to \code{'AUC'} (area under the curve), currently the
 only option. Linear interpolation methods to be added.}
+
+\item{per_hour}{Logical. Are the units of \code{gas_vars} per hour
+(\code{per_hour = TRUE}) or per day (\code{per_hour = FALSE}). Defaults to
+\code{FALSE}.}
 }
 \value{
 \code{data} with new columns for gas loads

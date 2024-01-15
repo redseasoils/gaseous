@@ -11,7 +11,7 @@
 #' @param excl_var Logical column in \code{data} which tracks observations that
 #'   should be excluded from the model
 #'
-#' @return Number of data points excluded from the model
+#' @returns Number of data points excluded from the model
 #'
 #' @details See \code{\link{model_co2}()} for details about the parameters and
 #'   method of model optimization.
@@ -20,11 +20,12 @@
 #'
 #' @importFrom dplyr `%>%` ensym pull mutate
 #'
+#' @export
+#'
 calib_optim <- function(x, data, excl_var, min_n = 4) {
 
   y = as.logical(x)
-  y = data %>% dplyr::pull({{ excl_var }}) %>%
-    ifelse(., TRUE, y)
+  y = data %>% dplyr::pull({{ excl_var }}) %>% ifelse(., TRUE, y)
   n_excl = sum(y)
   n_incl = sum(!y)
 
@@ -32,7 +33,14 @@ calib_optim <- function(x, data, excl_var, min_n = 4) {
     return(10000000) # arbitrary, large
   } else {
 
-    wy <- data %>% dplyr::mutate("{excl_var}" := y)
+    wy <- data %>% dplyr::mutate("{{excl_var}}" := y)
+
+    mod_dat <- replace_gas_with_na(wy, gas_vars = Carbon.dioxide.CO2,
+                                   excl_var = {{ excl_var }})
+
+    all_zero <- mod_dat %>% dplyr::filter({{ excl_var }} == FALSE) %>%
+      dplyr::pull(Carbon.dioxide.CO2)
+    all_zero <- all(all_zero == 0)
 
     mod <- lm(Carbon.dioxide.CO2 ~ seconds,
               data = wy %>% dplyr::mutate(
@@ -41,16 +49,18 @@ calib_optim <- function(x, data, excl_var, min_n = 4) {
               na.action = na.exclude
               )
 
-    rsq <- summary(mod)$r.squared
-
-    if (rsq < 0.98) {
-      return(10000000) # arbitrary, large
+    if (all_zero) {
+      return(1000000) # arbitrary, large, but smaller than 'failure' cases
     } else {
-      return(n_excl) # minimize n excluded when rsq >= 0.98
+      rsq <- summary(mod)$r.squared
+      if (rsq < 0.98) {
+        return(10000000) # arbitrary, large
+      } else {
+        return(n_excl) # minimize n excluded when rsq >= 0.98
+      }
     }
   }
 }
-
 
 
 
@@ -80,6 +90,7 @@ calib_optim <- function(x, data, excl_var, min_n = 4) {
 #' @seealso \code{\link{calib_optim}}, \code{\link{model_co2}}
 #'
 #' @importFrom dplyr `%>%` filter ensym pull
+#' @export
 #'
 calib_range <- function(data, excl_var, min_n = 4, x) {
 

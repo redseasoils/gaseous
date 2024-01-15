@@ -22,11 +22,11 @@ attr_show_codes <- function() {
 
     ## Attribute Codes
 
-    01. Plot data not retrieved/all plot data are NA or 0
+    01. All data from Gasmet for this plot/sampling are NA
     02. Number of observations retrieved from Gasmet < 4
     03. Gasmet warm-up or cool-down; removed during CO2 model optimization
     04. CO2 ppm ~ seconds could not be modeled with R^2 ≥ 0.98
-    05. Non-CO2 ppm ~ second could not be modeled with R^2 ≥ 0.1
+    05. Non-CO2 ppm ~ seconds could not be modeled with R^2 ≥ 0.1
     06. Chamber temperature not recorded
     07. Negative flux
     08. Extreme outlier (x > 75% quantile + 3IQR or x < 25% quantile - 3IQR)

@@ -1,0 +1,282 @@
+---
+title: "GHG Data Preprocessing - Flux Calculations"
+author: "Ezra Moses"
+date: "`r Sys.time()`"
+output: html_document
+---
+
+**Organization:** University of Illinois Urbana-Champaign
+
+**PI:** Andrew Margenot (margenot@illinois.edu)
+
+**Purpose:** Convert gas concentration data from the Gasmet to flux rates for sampling on `r date` at `r site`.
+
+This report is generated from a child of the parent script [110_preprocessing.R](`r parent`). Data are loaded, compiled, and subset by date in the parent script. 
+<!-- 
+The code in this Rmd cannot and should not be run directly; rather, the parent script 110_preprocessing.R should be run instead. This is intended only as a means to create by-date html reports, which are exported to data/01_converted_to_flux_rate/[site]. The outputs of the code in this Rmd can be viewed in the html reports after the parent script is run. The parent script is stored in the same folder/directory as this Rmd file.
+-->
+
+# View Data from `r date` at `r site`
+
+```{r view-starting-data}
+str(data)
+DT::datatable(data, rownames = F, options = list(scrollX = T, scrollY = '300px'))
+```
+
+# Calculations for Chamber Volume
+
+To convert Gasmet outputs from units of ppm to flux rates, we need to calculate (1) chamber volume, (2) collar volume, (3) sample volume, (4) cell volume, (5) total volume, and (6) the volume-to-area ratio of the chamber. The total volume represents the volume of total gas in the chamber, which is needed to calculate the volume of trace gas (GHG). The formulas for these volumes are as follows.
+
+1. Chamber volume (cm^3^) = $\pi r^2  h$
+2. Collar volume (cm^3^) = $\pi r^2 h$
+3. Sample volume (cm^3^) = $\pi r^2 h~\mathrm{(sample~in)} + \pi r^2 h~\mathrm{(sample~out)}$
+4. Cell volume (cm^3^) = 500 (known from Gasmet Technical Sheet)
+5.  Total Volume (cm^3^)} = Eq. 1 + Eq. 4 
+6.  Vol:Area ratio = $\mathrm{\frac{Total~Volume}{Collar~Area~(\pi r^2)}}$
+
+Where
+
++ $r$ is the radius of the chamber or collar in cm (10.15), and
++ $h$ is the height of the chamber or collar in cm, or the length of the sample in/sample out
+
+  + Chamber height always equals 15 cm
+  + Collar height is measured at each plot at each sampling and is stored in column `collar_height_cm` in loaded data
+  + Sample in length is column `sample_in_length_cm` in loaded data
+  + Sample out length is column `sample_out_length_cm` in loaded data
+
+```{r chamber-volume-calculations}
+data = data %>% 
+  mutate(
+    collar_area_cm2      = 10.15 ^ 2 * pi,
+    collar_vol_cm3       = collar_area_cm2 * collar_height_cm,
+    sample_in_vol_cm3    = pi * 0.2159 ^ 2 * sample_in_length_cm,
+    sample_out_vol_cm3   = pi * 0.2159 ^ 2 * sample_out_length_cm,
+    chamber_vol_cm3      = collar_area_cm2 * 15,
+    unit_vol_cm3         = 500,
+    total_vol_cm3        = collar_vol_cm3 + sample_in_vol_cm3 + 
+                            sample_out_vol_cm3 + chamber_vol_cm3 + unit_vol_cm3,
+    chamber_height_cm    = total_vol_cm3 / collar_area_cm2
+  ) 
+```
+
+# Prepare for Modeling
+
+To prepare data for modeling, we will add a column named `exclude_obs` which will be `FALSE` for observations that should be included in modeling, and `TRUE` for observations that should be excluded from modeling. We will update this column throughout the processing of these data, adding `TRUE` observations when data points do not pass certain quality checks or optimizations. We will add another column named `attributes` which will track the reasons observations are excluded using attribute codes as described below. Then we'll split the data into a list by plot so that modeling can be performed on individual plots separately.
+```{r model-data-prep}
+data$exclude_obs = FALSE
+data <- data %>% attr_new_col()
+attr_show_codes()
+dat_plot <- data %>% arrange(plot) %>% droplevels %>% split(., .$plot) %>% 
+  map(., droplevels)
+```
+
+
+# Determine Linear Coefficients {.tabset}
+
+Carbon dioxide (ppm) per second is a linear relationship that we expect to have an R^2^ value of at least 0.98. However, there are sometimes data points during the 'warming up' or 'cooling down' of the Gasmet that are not representative of this linear relationship and must be removed before modeling. Here, we will remove those data points by extracting residuals from a series of 'calibration' models (models of 4 consecutive data points at the beginning, middle, and end of the measurement), removing data points with the highest residuals, remodeling, and then re-evaluating the model. We will accept a model which has **at least 4 data points** and an **R^2^ value of at least 0.98**. 
+
+If the CO~2~ model is accepted, we will use its accepted data points to fit a linear model of N~2~O, CH~4~, and NH~3~ per second. The relationship between these gas concentrations and time tend to be less linear and have more noise, so we will accept models which have **R^2^ values of at least 0.1**.  
+
+
+## Carbon Dioxide
+
+Each row of figures below depicts the CO~2~ v. time linear model and its coefficients/R^2^ for a single plot. The lefthand figure shows a linear model fitted to all the data points collected in the sampling of the plot, while the righthand figure shows the model after data points have been removed through the calibration. If the calibration algorithm was unable to find a model fitting the R^2^ requirements, the righthand figure is missing and has a statement of failure in its place.
+
+```{r co2-modeling, echo = TRUE, warning = FALSE, message = FALSE, results = 'hide'}
+dat_plot <- map(dat_plot, ~ppm_seconds_lm(.x, optimization = TRUE))
+```
+```{r co2-model-plots, fig.width = 8, warning = FALSE, message = FALSE}
+co2_plots <- map(dat_plot, ~ppm_seconds_plot(.x, gas_var = Carbon.dioxide.CO2, 
+                                             gas_name = 'co2'))
+co2_plots
+```
+
+## Nitrous Oxide
+
+The following figures depict linear models for N~2~O data for each plot, using only the data points selected in the optimization for CO~2~. A message is displayed to the right if the CO~2~ model could not be fit or the N~2~O model did not have an R^2^ value of at least 0.1.
+
+```{r n2o-modeling, warning = FALSE, message = FALSE}
+dat_plot <- map(dat_plot, ~ppm_seconds_lm(.x, gas_var = Nitrous.oxide.N2O))
+n2o_plots <- map(dat_plot, ~ppm_seconds_plot(.x, Nitrous.oxide.N2O, 
+                                             gas_name = 'n2o'))
+n2o_plots
+```
+
+## Methane
+
+The following figures depict linear models for CH~4~ data for each plot, using only the data points selected in the optimization for CO~2~. A message is displayed to the right if the CO~2~ model could not be fit or the CH~4~ model did not have an R^2^ value of at least 0.1.
+
+```{r ch4-modeling, warning = FALSE, message = FALSE}
+dat_plot <- map(dat_plot, ~ppm_seconds_lm(.x, Methane.CH4))
+ch4_plots <- map(dat_plot, ~ppm_seconds_plot(.x, Methane.CH4, gas_name = 'ch4'))
+ch4_plots
+```
+
+## Ammonia
+
+The following figures depict linear models for NH~3~ data for each plot, using only the data points selected in the optimization for CO~2~. A message is displayed to the right if the CO~2~ model could not be fit or the NH~3~ model did not have an R^2^ value of at least 0.1.
+
+```{r nh3-modeling, warning = FALSE, message = FALSE}
+dat_plot <- map(dat_plot, ~ppm_seconds_lm(.x, Ammonia.NH3))
+nh3_plots <- map(dat_plot, ~ppm_seconds_plot(.x, Ammonia.NH3, gas_name = 'nh3'))
+nh3_plots
+```
+# {-}
+
+#' ---
+
+```{r rejoin-data, echo = F, message = F, warning = F}
+# Data joining and tidying
+dat <- bind_rows(dat_plot) %>% 
+  rename(co2_ppm = Carbon.dioxide.CO2,
+         n2o_ppm = Nitrous.oxide.N2O,
+         ch4_ppm = Methane.CH4,
+         nh3_ppm = Ammonia.NH3
+         ) %>% 
+  select(site, Date, plot, Time, seconds, attributes, exclude_obs,
+         starts_with("co2_"), starts_with("n2o_"), 
+         starts_with("ch4_"), starts_with("nh3_"),
+         matches("cm3$|cm2$|cm$|c$|pct$"))
+  names(dat)
+```
+
+# Post-Modeling Data
+
+In the calibrations and models above, the main data were updated with new columns for the slope, intercept, and R^2^ values of models for each plot (e.g. `co2_slope`, `n2o_intercept`, `ch4_rsq`). There are also new 'exclude' columns, with values either `true` or `false`, which indicate whether or not an observation or plot should be excluded from downstream analyses for each gas. The `exclude_obs` (should this *observation* be excluded from downstream analyses?) column was generated in the initial calibration of the CO~2~ model and applies to all GHGs. There are then columns `n2o_exclude`, `ch4_exclude`, and `nh3_exclude` which indicate whether or not to exclude particular GHGs from downstream analyses based on the R^2^ values of their respective linear models (e.g. if the R^2^ value of the linear model of N~2~O was below 0.1, the `n2o_exclude` column for that plot would be marked `true`).
+
+The data with new columns can be viewed below.
+```{r view-post-model-data, echo = F}
+DT::datatable(dat, rownames = F, options = list(scrollX = T, scrollY = '300px'))
+```
+
+
+# Calculate flux rates
+
+To calculate flux rate, we will use the following terms:
+
++ $f_m$ = flux on a mass basis, expressed in $\mathrm{\mu g_{trace~gas}~m^{-2}~hr^{-1}}$,
++ $\alpha_m$ = slope of the linear model of $\mathrm{ppm_{trace~gas}}$ per second, expressed in $\mathrm{\mu L_{trace~gas}~L^{-1}_{total~gas}~second^{-1}}$,
++ $M_m$ = molar mass of the gas molecule, expressed in $\mathrm{\mu g~\mu mol^{-1}}$, which is equivalent to $\mathrm{g~mol^{-1}}$,
++ $M_v$ = molar volume of the gas, expressed in $\mathrm{\mu mol_{trace~gas}~\mu L_{trace~gas}^{-1}}$; using the Ideal Gas Law, this term can be expressed as $\frac{1}{RT}$ (calculation below), 
++ $\mathrm{\frac{cm^3_{total~gas}}{cm^2_{soil~surface}}}$ = volume:area ratio of the chamber, calculated above and stored in column `chamber_height_cm`
++ $R$ = Ideal gas constant = 0.0821 $\mathrm{\frac{L \cdot atm}{mol \cdot K}}$
++ $T$ = temperature of the chamber, expressed in K = °C + 273.15
+
+We want to calculate flux rate ($f_m$), which is expressed in $\mathrm{\mu g_{trace~gas}~m^{-2}~hr^{-1}}$. Raw data from the Gasmet have units of ppm. Volumetric parts per million (ppm~v~) is equivalent to $\mathrm{\mu L_{trace~gas}~L^{-1}_{total~gas}}$. For example, a 1 ppm~v~ N~2~O standard will contain 1 $\mu$L N~2~O L^-1^ gas. The slope ($\alpha$) of the linear relationship between the ppm~v~ of each gas and time (determined above) represents $\mu$L trace gas L^-1^ air second^-1^. Therefore, to convert from ppm~v~ to $f_m$, we will use the formula:
+
+$$f_m~\left( \mathrm{\frac{\mu g_{trace~gas}}{m^2~\cdot~hr}}\right) = 
+\mathrm{\frac{\mathrm{\mu L_{trace~gas}}}{\mathrm{L_{total~gas}}~\cdot~second} \times 
+\frac{\mu g_{trace~gas}}{\mu L_{trace~gas}} \times 
+\frac{cm^3_{total~gas}}{cm^2_{soil~surface}} \times 
+\frac{1~L}{1000~cm^3} \times
+\frac{10,000~cm^2}{1~m^2} \times 
+\frac{3600~seconds}{1~hr} 
+}$$
+
+We have all the information we need to calculate *except* $\mathrm{\frac{\mu g_{trace~gas}}{\mu L_{trace~gas}}}$. To calculate this term, we can use the molar mass of each gas ($M$, in $\mathrm{\frac{g}{mol}}$, which is equivalent to $\mathrm{\frac{\mu g}{\mu mol}}$) and the Ideal Gas Law ($PV=nRT$). We want to isolate $\mu$mol ($n$) per 1 $\mu$L volume, so we will set $V=1$. We also assume atmospheric pressure of 1 atm, and therefore set $P=1$. To isolate $n$, we end up with $n=\frac{PV}{RT}$), where $R$ is the ideal gas constant ($0.0821 \frac{L~\cdot~atm}{K~\cdot~mol}$) and $T$ is the temperature of the chamber in K (°C + 273.15). With this information, we can update our formula to:
+
+$$f_m\mathrm{,~in~\frac{\mu g_{trace~gas}}{m^2~\cdot~hr}} = 
+\mathrm{\frac{\mathrm{\mu L_{trace~gas}}}{\mathrm{L_{total~gas}}~\cdot~second} \times 
+\frac{\mu g_{trace~gas}}{\mu mol} \times 
+\frac{1}{RT} \times
+\frac{cm^3_{total~gas}}{cm^2_{soil~surface}} \times 
+\frac{1~L}{1000~cm^3} \times
+\frac{10,000~cm^2}{1~m^2} \times 
+\frac{3600~seconds}{1~hr} 
+}$$
+
+Finally, we will calculate gas fluxes based on the weights of C or N in the molecule, so we will need to multiply the flux by the proportion of molecular weight comprised of C or N. These proportions are as follows:
+
++ CO~2~ = 27.29% C by weight
++ N~2~O = 63.65% N by weight
++ CH~4~ = 74.87% C by weight
++ NH~3~ = 82.24% N by weight
+
+First, if chamber temperature is missing, mark observations for exclusion and update attributes.
+
+```{r chamber-temp-missing}
+dat <- dat %>% 
+  filter(is.na(chamber_temp_c)) %>% 
+  mutate(exclude_obs = TRUE) %>% 
+  attr_update(prefix = 'all', attr_code = '06') %>% 
+  rows_update(dat, ., by = names(select(dat, -exclude_obs, -attributes)))
+```
+
+Now calculate flux.
+
+```{r calculate-flux}
+dat <- dat %>%
+  
+  rowwise %>% mutate(
+    
+    co2_ug_m2_hr = co2_slope * # slope
+      44.0095 * # molar mass
+      (1 / (0.0821 * (chamber_temp_c + 273.15))) * # 1 / RT
+      (total_vol_cm3 / collar_area_cm2) * # volume to area ratio (eqiv to chamber_height_cm)
+      (1 / 1000) * # convert cm3 to L
+      10000 * # convert cm2 to m2
+      3600 * # conversion from per sec to per hour
+      0.2729, # proportion C by weight
+    
+    n2o_ng_m2_hr = n2o_slope * # slope
+      44.0128 * # molar mass
+      (1 / (0.0821 * (chamber_temp_c + 273.15))) * # 1 / RT
+      (total_vol_cm3 / collar_area_cm2) * # volume to area ratio (eqiv to chamber_height_cm)
+      (1 / 1000) * # convert cm3 to L
+      10000 * # convert cm2 to m2
+      3600 * # conversion from per sec to per hour
+      1000 * # conversion from ug to ng
+      0.6365, # proportion N by weight
+      
+    ch4_ng_m2_hr = ch4_slope * # slope
+      16.04246 * # molar mass
+      (1 / (0.0821 * (chamber_temp_c + 273.15))) * # 1 / RT
+      (total_vol_cm3 / collar_area_cm2) * # volume to area ratio (eqiv to chamber_height_cm)
+      (1 / 1000) * # convert cm3 to L
+      10000 * # convert cm2 to m2
+      3600 * # conversion from per sec to per hour
+      1000 * # conversion from ug to ng
+      0.7487, # proportion C by weight
+
+    nh3_ng_m2_hr = nh3_slope * # slope
+      17.03052 * # molar mass
+      (1 / (0.0821 * (chamber_temp_c + 273.15))) * # 1 / RT
+      (total_vol_cm3 / collar_area_cm2) * # volume to area ratio (eqiv to chamber_height_cm)
+      (1 / 1000) * # convert cm3 to L
+      10000 * # convert cm2 to m2
+      3600 * # conversion from per sec to per hour
+      1000 * # conversion from ug to ng
+      0.8224 # proportion N by weight
+    
+  ) %>% ungroup
+```
+
+# Update Exclusions
+
+If `exclude_obs = TRUE`, all gases should be excluded from further analysis, but may not have been marked as such in gas-specific columns. Fix that here and add a CO~2~ specific exclusion column, which will be needed in downstream processing.
+```{r}
+dat <- dat %>% 
+  mutate(
+    co2_exclude = FALSE,
+    across(all_of(ends_with('_exclude')), ~ifelse(exclude_obs == TRUE, TRUE, .x))
+  ) %>% 
+  select(-exclude_obs)
+```
+
+
+# View and Export Flux Data
+
+Save the flux data as a CSV file at `r paste0(output_data_dir, "/", output_file, ".csv")`.
+```{r save-csv, echo = T}
+DT::datatable(dat %>% mutate(across(where(is.numeric), ~round(.x, 2))), 
+              rownames = F, options = list(scrollX = T, scrollY = '300px'))
+write.csv(dat, paste0(output_data_dir, "/", output_file, ".csv"), row.names = F)
+```
+
+# Footer
+
+```{r footer}
+path.expand('~')
+sessionInfo()
+```
+
