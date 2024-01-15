@@ -8,6 +8,10 @@
 #'   downstream processing and analysis.
 #' @param method Character. Method of handling negative values: exclusion or
 #'   replacement with 0. Options are \code{"excl"} or \code{"zero"}.
+#' @param zero_threshold Numeric. Used only if \code{method = "excl"}. Negative
+#'   number at or above which flux values should be changed to zero rather than
+#'   being excluded. Defaults to 0 (i.e. all negative flux values are excluded
+#'   by default).
 #' @param attr_var Passed to \code{\link{attr_update}()}. Name of column in
 #'   \code{data} which records attributes. Defaults to \code{attributes}.
 #' @param prefix Passed to \code{\link{attr_update}()}. Character. Unique prefix
@@ -23,7 +27,7 @@
 #'   and \code{attr_var}, or, if \code{method = "zero"}, updated \code{gas_var}.
 #' @export
 #'
-#' @importFrom dplyr `%>%` filter mutate rows_update select ensym
+#' @importFrom dplyr `%>%` filter mutate rows_update select ensym bind_rows
 #' @importFrom DT datatable
 #'
 negative_flux <- function(
@@ -31,6 +35,7 @@ negative_flux <- function(
     gas_var,
     excl_var,
     method = c("excl", "zero"),
+    zero_threshold = 0,
     attr_var = attributes,
     prefix,
     sep = ',',
@@ -52,10 +57,17 @@ negative_flux <- function(
   neg <- data %>% filter({{ excl_var }} == FALSE & {{ gas_var }} < 0)
 
   if (method == "excl") {
-    neg <- neg %>% mutate("{{excl_var}}" := TRUE) %>%
+    neg_zero <- neg %>%
+      filter({{ gas_var }} >= zero_threshold) %>%
+      mutate("{{gas_var}}" := 0)
+    neg <- neg %>%
+      filter({{ gas_var }} < zero_threshold) %>%
+      mutate("{{excl_var}}" := TRUE) %>%
       attr_update(attr_var = {{ attr_var }},
                   prefix = prefix, attr_code = '07', sep = sep)
-    by_cols <- names(neg %>% dplyr::select(-{{ excl_var }}, -{{ attr_var }}))
+    neg <- bind_rows(neg, neg_zero)
+    by_cols <- names(neg %>% dplyr::select(-{{ excl_var }}, -{{ attr_var }},
+                                           -{{ gas_var }}))
   }
 
   if (method == "zero") {

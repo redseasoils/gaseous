@@ -9,6 +9,7 @@ negative_flux(
   gas_var,
   excl_var,
   method = c("excl", "zero"),
+  zero_threshold = 0,
   attr_var = attributes,
   prefix,
   sep = ",",
@@ -27,6 +28,11 @@ downstream processing and analysis.}
 
 \item{method}{Character. Method of handling negative values: exclusion or
 replacement with 0. Options are \code{"excl"} or \code{"zero"}.}
+
+\item{zero_threshold}{Numeric. Used only if \code{method = "excl"}. Negative
+number at or above which flux values should be changed to zero rather than
+being excluded. Defaults to 0 (i.e. all negative flux values are excluded
+by default).}
 
 \item{attr_var}{Passed to \code{\link{attr_update}()}. Name of column in
 \code{data} which records attributes. Defaults to \code{attributes}.}

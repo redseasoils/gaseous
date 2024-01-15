@@ -126,8 +126,8 @@ import_chamber_volume <- function(path = 'data/00_raw/chamber_volume') {
   # Make sure each date/site/plot has only one unique entry of volume data
   multiple_vols <- vol %>% dplyr::filter(dplyr::n() > 1, .by = c(site, Date, plot))
   if (nrow(multiple_vols) > 0) {
-    stop(paste(
-      "Multiple chamber volume files found at:\n",
+    warning(paste(
+      "Multiple chamber volume entries for the same plot found at:\n",
       paste(
         unique(paste(
           multiple_vols$site, multiple_vols$Date, sep = " on "
