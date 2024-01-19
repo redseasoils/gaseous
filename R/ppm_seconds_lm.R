@@ -243,6 +243,7 @@ ppm_seconds_lm_optim <- function(
   optim_range <- purrr::map(1:max_it, ~ calib_range(data, {{excl_var}}, min_n))
   optim_calib <- purrr::map(optim_range, ~calib_optim(.x, data, {{excl_var}}, min_n)) %>% unlist()
   optim_loc <- which.min(optim_calib)
+  if (length(optim_loc) > 1) optim_loc <- sample(optim_loc, 1)
   optim_value <- optim_calib[optim_loc]
 
   # failure case 3 : optim failed to build model with rsq >= 0.98, optim

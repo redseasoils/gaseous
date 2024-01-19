@@ -37,6 +37,9 @@ calib_optim <- function(x, data, excl_var, min_n = 4) {
 
     mod_dat <- replace_gas_with_na(wy, gas_vars = Carbon.dioxide.CO2,
                                    excl_var = {{ excl_var }})
+    all_equal <- length(unique(
+      mod_dat$Carbon.dioxide.CO2[is.na(mod_dat$Carbon.dioxide.CO2)]
+      )) == 1
 
     all_zero <- mod_dat %>% dplyr::filter({{ excl_var }} == FALSE) %>%
       dplyr::pull(Carbon.dioxide.CO2)
@@ -49,7 +52,7 @@ calib_optim <- function(x, data, excl_var, min_n = 4) {
               na.action = na.exclude
               )
 
-    if (all_zero) {
+    if (all_zero | all_equal) {
       return(1000000) # arbitrary, large, but smaller than 'failure' cases
     } else {
       rsq <- summary(mod)$r.squared

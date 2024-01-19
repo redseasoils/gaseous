@@ -17,16 +17,31 @@
 gasmet_bind_check <- function(
     dfls, issues_path = "gasmet_data_import_issues.txt"
     ) {
-  can_continue <- !any(str_detect(
-    readLines(issues_path), "must be fixed before processing can continue"
+
+  if (file.exists(issues_path)) {
+    can_continue <- !any(str_detect(
+      readLines(issues_path), "must be fixed before processing can continue"
     ))
-  if (any(str_detect(readLines(issues_path), '[:alnum:]'))) {
-    file.edit(issues_path)
+    if (any(str_detect(readLines(issues_path), '[:alnum:]'))) {
+      file.edit(issues_path)
+    } else {
+      file.remove(issues_path)
+    }
+    stopifnot("Fix issues with gasmet data and restart script from beginning." = can_continue)
   } else {
-    file.remove(issues_path)
+    message("No file found at issues_path. Make sure you've run the gasmet_file_issues() function prior to this. If you have, ignore this message.")
+    can_continue <- TRUE
   }
-  stopifnot("Fix issues with gasmet data and restart script from beginning." = can_continue)
-  check <- janitor::compare_df_cols_same(conc_list)
+
+  check <- tryCatch(janitor::compare_df_cols_same(conc_list),
+                    error = function (e) {
+                      cat("Unable to complete all data checks.")
+                      return(NULL)
+                    })
+  if (!is.null(check)) {
   stopifnot("Issue with column types. Try running the script from the beginning. If issue persists, contact Ezra." = check)
   return(can_continue && check)
+  } else {
+    return(can_continue)
+  }
 }
