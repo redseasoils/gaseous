@@ -20,3 +20,6 @@ Imports:
 RoxygenNote: 7.2.3
 URL: https://github.com/redseasoils/gaseous
 BugReports: https://github.com/redseasoils/gaseous/issues
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

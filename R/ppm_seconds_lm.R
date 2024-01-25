@@ -128,8 +128,13 @@ ppm_seconds_lm <- function(
     optimization = FALSE
 ) {
 
+  if(missing(gas_var) && optimization) {
+    gas_char <- "Carbon.dioxide.CO2"
+  } else {
+    gas_char <- data %>% dplyr::select({{ gas_var }}) %>% names()
+  }
+
   seconds_char <- data %>% dplyr::select({{ seconds_var }}) %>% names()
-  gas_char <- data %>% dplyr::select({{ gas_var }}) %>% names()
   if (missing(prefix)) prefix <- ifelse(
     optimization, 'all', guess_prefix(deparse(substitute(gas_var)))
   )

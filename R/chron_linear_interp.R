@@ -24,7 +24,7 @@
 #' @importFrom purrr map
 chron_linear_interp <- function(
   data,
-  gas_vars = c(co2_mg_kg_day, n2o_mg_kg_day, ch4_mg_kg_day, nh3_mg_kg_day),
+  gas_vars = c(co2_kg_ha_day, n2o_kg_ha_day, ch4_kg_ha_day, nh3_kg_ha_day),
   date_var = Date,
   site_var = site,
   year_var = year,
@@ -66,7 +66,7 @@ chron_linear_interp <- function(
         options1 = ifelse(is.null(non_na), list(NULL),
                          list(non_na[row_id > non_na])),
         choice1 = ifelse(is.null(options1), NA_integer_,
-                        options1[which.min(row_id - options1)]),
+                         options1[which.min(row_id - options1)]),
         choice_id1 = paste(cur_group_id, choice1),
 
         options2 = ifelse(is.null(non_na), list(NULL),

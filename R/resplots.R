@@ -52,23 +52,36 @@ resplots = function(
   gas_vars_char <- gas_vars_char[!is.na(gas_vars_char)]
   resid_vars_char <- resid_vars_char[!is.na(resid_vars_char)]
 
-  result <- purrr::map2(
-    gas_vars_char, resid_vars_char,
-    ~ ggplot2::ggplot(data, ggplot2::aes(x = !!dplyr::ensym(.x),
-                                         y = !!dplyr::ensym(.y))) +
-      ggplot2::geom_point() +
-      ggplot2::geom_hline(yintercept = 0) +
-      ggplot2::labs(
-        title = sprintf("%s Pearson Residuals", toupper(.x)),
-        x = "Fitted Values", y = "Residuals"
+  if (length(gas_vars_char) + length(resid_vars_char) > 0) {
+    result <- purrr::map2(
+      gas_vars_char, resid_vars_char,
+      ~ ggplot2::ggplot(data, ggplot2::aes(x = !!dplyr::ensym(.x),
+                                           y = !!dplyr::ensym(.y))) +
+        ggplot2::geom_point() +
+        ggplot2::geom_hline(yintercept = 0) +
+        ggplot2::labs(
+          title = sprintf("%s Pearson Residuals", toupper(.x)),
+          x = "Fitted Values", y = "Residuals"
         )
-  )
+    )
 
-  if (one_plot) {
-    result <- cowplot::plot_grid(plotlist = result, byrow = FALSE,
-                                 nrow = length(result)/2, ncol = 2)
+    if (one_plot) {
+      result <- cowplot::plot_grid(plotlist = result, byrow = FALSE,
+                                   nrow = length(result)/2, ncol = 2)
+    }
+
+    return(result)
+  } else {
+
+    result <- ggplot() +
+      geom_text(
+        aes(x = 0, y = 0,
+            label = "Residual plot could not be created\ndue to issues with model data."
+            ), size = 6) +
+      theme_void()
+
+    return(result)
+
   }
-
-  return(result)
 
 }

@@ -53,9 +53,9 @@ mutate_levene_shapiro_p <- function(
     resid_vars_char, gas_vars_char,
     ~ data %>%
       dplyr::mutate(
-        "{.y}_shapiro" := ifelse(
-          all(is.na(data[[.x]])), NA,
-          rstatix::shapiro_test(data, !!dplyr::ensym(.x))$p[1]
+        "{.y}_shapiro" := tryCatch(
+          rstatix::shapiro_test(data, !!dplyr::ensym(.x))$p[1],
+          error = function(e) NA
         )
       )
   ) %>%
