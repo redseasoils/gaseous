@@ -128,23 +128,23 @@ ppm_seconds_lm <- function(
     optimization = FALSE
 ) {
 
-  if(missing(gas_var) && optimization) {
+  if (missing(gas_var) && optimization) {
     gas_char <- "Carbon.dioxide.CO2"
   } else {
     gas_char <- data %>% dplyr::select({{ gas_var }}) %>% names()
   }
 
   seconds_char <- data %>% dplyr::select({{ seconds_var }}) %>% names()
-  if (missing(prefix)) prefix <- ifelse(
-    optimization, 'all', guess_prefix(deparse(substitute(gas_var)))
-  )
+  if (missing(prefix)) {
+    prefix <- ifelse(optimization, 'all', guess_prefix(gas_char))
+  }
   slope_var <- ifelse(prefix == 'all', 'co2_slope', paste0(prefix, "_slope"))
   intercept_var <- ifelse(prefix == 'all', 'co2_intercept', paste0(prefix, "_intercept"))
   rsq_var <- ifelse(prefix == 'all', 'co2_rsq', paste0(prefix, "_rsq"))
   non_co2_excl_var <- ifelse(prefix == 'all', NA, paste0(prefix, "_exclude"))
 
   mod_data <- data %>%
-    replace_gas_with_na(gas_vars = {{ gas_var }}, excl_vars = {{ excl_var }})
+    replace_gas_with_na(gas_vars = {{ gas_char }}, excl_vars = {{ excl_var }})
 
   # Screen for special cases
 

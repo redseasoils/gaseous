@@ -36,6 +36,7 @@
 library(DT)
 library(multcomp)
 library(emmeans)
+library(broom)
 library(tidyverse)
 library(gaseous)
 
@@ -67,7 +68,7 @@ mod_dv_type <- "INPUT_TYPE_HERE"
 # Use dependent variable type to create a directory for exports. Do not edit the
 # following chunk.
 export_dir <- str_glue("data/04_analyzed/{mod_dv_type}")
-if (!export_dir) dir.create(export_dir, recursive = TRUE)
+if (!dir.exists(export_dir)) dir.create(export_dir, recursive = TRUE)
 
 #' **Dependent variable names:** Define dependent variable column names from
 #' `mod_dat` on the right-hand side of each named vector entry below. Do not
@@ -85,7 +86,7 @@ mod_dv <- c("co2" = "INPUT_CO2_COLNAME",
 # columns specified above. The following chunk of code should not need changes.
 rm_cols <- names(dat)[str_detect(names(dat), 'kg_ha')]
 rm_cols <- rm_cols[!rm_cols %in% mod_dv]
-mod_dat <- dat %>% select(-all_of(rm_cols)) %>% rename(all_of(mod_dv))
+mod_dat <- mod_dat %>% select(-all_of(rm_cols)) %>% rename(all_of(mod_dv))
 
 #' **Dependent variable transformation:** Many times, greenhouse gas data need
 #' to be transformed in order to meet the assumptions of ANOVA. Below, gas data
@@ -243,7 +244,7 @@ mod_resplots <- map(mod_dat, ~ resplots(.x, gas_vars = all_of(mod_cols)))
 mod_resplot_dir <- str_glue('{export_dir}/mod{mod_id}_residual_plots')
 if (!dir.exists(mod_resplot_dir)) dir.create(mod_resplot_dir)
 for (i in 1:length(mod_resplots)) {
-  pdf(paste(mod_resplot_dir, names(mod_resplots)[[i]], sep = '/'),
+  pdf(paste0(mod_resplot_dir, '/', names(mod_resplots)[[i]], '.pdf'),
       width = 12, height = 20)
   plot(mod_resplots[[i]])
   dev.off()
@@ -256,7 +257,7 @@ mod_qqplots <- map(mod_dat, ~ qqplots(.x, gas_vars = all_of(mod_cols)))
 mod_qqplot_dir <- str_glue('{export_dir}/mod{mod_id}_qqplots')
 if (!dir.exists(mod_qqplot_dir)) dir.create(mod_qqplot_dir)
 for (i in 1:length(mod_qqplots)) {
-  pdf(paste(mod_resplot_dir, names(mod_qqplots)[[i]], sep = '/'),
+  pdf(paste0(mod_qqplot_dir, '/', names(mod_qqplots)[[i]], '.pdf'),
       width = 12, height = 20)
   plot(mod_qqplots[[i]])
   dev.off()
@@ -325,10 +326,10 @@ mod_dat_long <- bind_rows(mod_dat, .id = mod_by_nm)
 # is stored in new column `var`.
 mod_dat_long <- mod_dat_long %>%
   rename_with(.cols = all_of(mod_cols),
-              .fn = ~ paste0(.x, "_flux")) %>%
+              .fn = ~ paste0(.x, str_glue("_{mod_dv_type}"))) %>%
   pivot_longer(cols = where(is.numeric),
                names_to = c('var', 'stat'),
-               names_pattern = '(.+)_(.+)',
+               names_pattern = str_glue('(.+)_(resid|levene|shapiro|{mod_dv_type})'),
                values_to = 'value') %>%
   filter(stat %in% c(mod_dv_type, "resid", "levene", "shapiro"))
 
@@ -353,7 +354,7 @@ datatable(head(mod_dat_long, 100) %>%
             mutate(across(where(is.numeric), ~round(.x, 3))),
           rownames = F, options = list(scrollX = T, scrollY = '200px'))
 saveRDS(mod_dat_long,
-        str_glue('data/04_analyzed/{mod_dv_type}/mod{mod_num}_Rdata.RDS'))
+        str_glue('data/04_analyzed/{mod_dv_type}/mod{mod_id}_Rdata.RDS'))
 
 #' # Footer
 sessionInfo()

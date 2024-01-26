@@ -6,7 +6,7 @@
 \usage{
 chron_linear_interp(
   data,
-  gas_vars = c(co2_mg_kg_day, n2o_mg_kg_day, ch4_mg_kg_day, nh3_mg_kg_day),
+  gas_vars = c(co2_kg_ha_day, n2o_kg_ha_day, ch4_kg_ha_day, nh3_kg_ha_day),
   date_var = Date,
   site_var = site,
   year_var = year,

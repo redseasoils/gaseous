@@ -24,22 +24,14 @@ replace_gas_with_na <- function(
   gas_vars = c(co2_kg_ha_day, n2o_kg_ha_day, ch4_kg_ha_day, nh3_kg_ha_day),
   excl_vars = c(co2_exclude, n2o_exclude, ch4_exclude, nh3_exclude)
 ) {
-
   gas_vars_char <- data %>% dplyr::select({{ gas_vars }}) %>% names()
   excl_vars_char <- data %>% dplyr::select({{ excl_vars }}) %>% names()
-
-  replNA <- function(data, n) {
-    x <- excl_vars_char[n]
-    y <- gas_vars_char[n]
-    data[[y]] <- ifelse(data[[x]], NA, data[[y]])
-    if (n < length(gas_vars_char)) {
-      n <- n + 1
-      replNA(data, n)
-    } else{
-      return(data)
-    }
-  }
-  result <- replNA(data, 1)
+  result <- map2(gas_vars_char, excl_vars_char, ~ data %>%
+                   mutate("{{.x}}" = ifelse({{ .y }}, NA, {{ .x }})) %>%
+                   select({{ .x }}))
+  result <- data %>%
+    select( - {{ gas_vars }}) %>%
+    bind_cols(result)
+  result <- result %>% select(all_of(names(data)))
   return(result)
-
 }
