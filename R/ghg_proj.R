@@ -31,7 +31,8 @@ ghg_proj <- function(path, ...) {
   scripts = c("110_preprocessing.R", "110_preprocessing.Rmd", "210_cleaning.R",
               "220_impute.R", "230_unit_conversions.R", "240_NOAA_merge.R",
               "310_summarize_visual.R", "320_summarize_tabular.R",
-              "410_daily_flux_models.R")
+              "400_lmer_template.R", "501_flux_time_series.R",
+              "502_load_time_series.R", "503_load_barplots.R")
   for (script in scripts) {
     file.copy(
       from = system.file(package = 'gaseous', paste0('scripts/templates/', script)),

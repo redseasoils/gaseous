@@ -56,7 +56,7 @@ load_barplot_data <- load_data %>%
   filter(Date == max(Date), .by = c(site, treatment, gas))
 
 #' Import and join on model data for compact letter displays.
-load_barplot_mod_data <- readRDS('data/04_analyzed/load/mod1_Rdata.RDS') %>%
+load_barplot_mod_data <- readRDS('data/04_analyzed/load/mod{mod_id}_Rdata.RDS') %>%
   filter(var %in% c('co2', 'n2o', 'ch4', 'nh3') & stat == 'load') %>%
   select(site, year, treatment, gas = var, NumDF, DenDF, f.statistic, p.value, cld)
 load_barplot_data <- load_barplot_data %>%

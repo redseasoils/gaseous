@@ -321,12 +321,12 @@ mod_cld
 
 mod_dat_long <- bind_rows(mod_dat, .id = mod_by_nm)
 
-# Add "_flux" suffix to gas and log transformed gas column names, then pivot
-# data longer so that the suffix is stored in new column `stat` and the prefix
-# is stored in new column `var`.
+# Add suffix to gas and log transformed gas column names, then pivot data longer
+# so that the suffix is stored in new column `stat` and the prefix is stored in
+# new column `var`.
 mod_dat_long <- mod_dat_long %>%
   rename_with(.cols = all_of(mod_cols),
-              .fn = ~ paste0(.x, str_glue("_{mod_dv_type}"))) %>%
+              .fn = ~ paste0(.x, "_", mod_dv_type) %>%
   pivot_longer(cols = where(is.numeric),
                names_to = c('var', 'stat'),
                names_pattern = str_glue('(.+)_(resid|levene|shapiro|{mod_dv_type})'),
