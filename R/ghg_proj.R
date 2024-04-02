@@ -46,8 +46,8 @@ ghg_proj <- function(path, ...) {
   )
   # copy instructions to instructions/
   file.copy(
-    from = system.file(package = 'gaseous', 'instructions/workflow_instructions.pptm'),
-    to = paste0(path, '/instructions/workflow_instructions.pptm')
+    from = system.file(package = 'gaseous', 'instructions/workflow_instructions_v2312.pptm'),
+    to = paste0(path, '/instructions/workflow_instructions_v2312.pptm')
   )
   # copy treatment key to keys/
   file.copy(
