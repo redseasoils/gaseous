@@ -17,7 +17,7 @@ Imports:
     cowplot,
     ggpubr,
     readxl
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 URL: https://github.com/redseasoils/gaseous
 BugReports: https://github.com/redseasoils/gaseous/issues
 Suggests: 

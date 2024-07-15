@@ -26,12 +26,16 @@ replace_gas_with_na <- function(
 ) {
   gas_vars_char <- data %>% dplyr::select({{ gas_vars }}) %>% names()
   excl_vars_char <- data %>% dplyr::select({{ excl_vars }}) %>% names()
-  result <- map2(gas_vars_char, excl_vars_char, ~ data %>%
-                   mutate("{{.x}}" = ifelse({{ .y }}, NA, {{ .x }})) %>%
-                   select({{ .x }}))
+  result <- map2(gas_vars_char, excl_vars_char,
+                 ~ ifelse(data[[.y]], NA, data[[.x]]) %>%
+                   as.data.frame() %>%
+                   set_names(.x))
+  # result <- map2(gas_vars_char, excl_vars_char, ~ data %>%
+  #                  mutate("{{.x}}" = ifelse({{ .y }} == TRUE, NA, {{ .x }})) %>%
+  #                  select({{ .x }}, {{ .y }}))
   result <- data %>%
     select( - {{ gas_vars }}) %>%
-    bind_cols(result)
+    mutate(bind_cols(result))
   result <- result %>% select(all_of(names(data)))
   return(result)
 }

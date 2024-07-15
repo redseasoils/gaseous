@@ -326,12 +326,12 @@ mod_dat_long <- bind_rows(mod_dat, .id = mod_by_nm)
 # new column `var`.
 mod_dat_long <- mod_dat_long %>%
   rename_with(.cols = all_of(mod_cols),
-              .fn = ~ paste0(.x, "_", mod_dv_type) %>%
+              .fn = ~ paste0(.x, "_", mod_dv_type)) %>%
   pivot_longer(cols = where(is.numeric),
                names_to = c('var', 'stat'),
                names_pattern = str_glue('(.+)_(resid|levene|shapiro|{mod_dv_type})'),
                values_to = 'value') %>%
-  filter(stat %in% c(mod_dv_type, "resid", "levene", "shapiro"))
+  filter(var %in% mod_cols)
 
 # Join treatment ANOVA stats and CLDs onto data
 mod_dat_long <- mod_dat_long %>%
@@ -346,7 +346,7 @@ for (i in seq_along(mod_by)) {
   mod_dat_long <- mod_dat_long %>%
     mutate("{col}" := str_split_i(!!ensym(mod_by_nm), "__", i))
 }
-if (length(mod_by) > 1) mod_anovas <- select(mod_anovas, -{{ mod_by_nm }})
+if (length(mod_by) > 1) mod_dat_long <- select(mod_dat_long, -{{ mod_by_nm }})
 mod_dat_long
 
 # Export long data
