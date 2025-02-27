@@ -51,8 +51,8 @@ merged <- noaa %>%
   full_join(dat %>% select(plot, all_of(plot_id_vars)) %>% distinct(),
             by = join_by(site, year),
             relationship = 'many-to-many') %>%
-  full_join(dat, noaa, by = c('plot', 'Date', plot_id_vars)) %>%
   filter(!is.na(plot)) %>%
+  select(all_of(plot_id_vars), plot, everything()) %>%
   arrange(site, year, plot, Date)
 
 #' # Export Merged Data

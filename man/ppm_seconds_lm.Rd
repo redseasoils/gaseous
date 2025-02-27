@@ -14,7 +14,8 @@ ppm_seconds_lm(
   seconds_var = seconds,
   attr_var = attributes,
   prefix,
-  optimization = FALSE
+  optimization = FALSE,
+  optim_method = 2
 )
 
 ppm_seconds_lm_optim(
@@ -25,7 +26,8 @@ ppm_seconds_lm_optim(
   seconds_var = seconds,
   attr_var = attributes,
   prefix = "all",
-  optimization = TRUE
+  optimization = TRUE,
+  optim_method = 2
 )
 
 ppm_seconds_lm_asis(
@@ -66,6 +68,10 @@ FALSE}, it will attempt to be inferred from \code{gas_var}.}
 
 \item{optimization}{Logical. Whether or not to perform optimization algorithm
 descibed in \code{\strong{Details}}. Defaults to \code{FALSE}.}
+
+\item{optim_method}{Double equal to \code{1} or \code{2}. Method \code{2} is
+recommended and the default. Method \code{1} is the legacy method. Ignored
+when \code{optimization = FALSE}.}
 }
 \value{
 \code{data} with new columns containing model coefficients and
@@ -76,13 +82,13 @@ Create a model of gas ppm per second, with or without use of an
   optimization algorithm to remove endpoints attributable to Gasmet warm-up
   or cool-down.
 
-  When \code{optimization = TRUE}, the function uses
-  \code{\link{calib_optim}()} and \code{\link{calib_range}()} to model
-  CO\eqn{_2} data with optimization as described in \code{\strong{Details}}.
-  Returns \code{data} with optimized \code{excl_var} column, updated
-  \code{attr_var}, and additional columns: \code{co2_rsq},
-  \code{co2_intercept}, and \code{co2_slope}, which correspond to the
-  R\eqn{^2}, intercept, and slope of the final model, respectively.
+  When \code{optimization = TRUE}, the function uses an algorithm to model
+  CO\eqn{_2} data with optimization as described in
+  \code{\strong{'Details'}}. Returns \code{data} with optimized
+  \code{excl_var} column, updated \code{attr_var}, and additional columns:
+  \code{co2_rsq}, \code{co2_intercept}, and \code{co2_slope}, which
+  correspond to the R\eqn{^2}, intercept, and slope of the final model,
+  respectively.
 
   When \code{optimization = FALSE} (the default), the function creates a
   linear model of \code{gas_var ~ seconds_var} excluding observations where
@@ -98,8 +104,8 @@ Create a model of gas ppm per second, with or without use of an
   FALSE}.
 }
 \details{
-When \code{optimization = TRUE}, the optimization proceeds as
-  follows:
+When \code{optimization = TRUE}, and \code{optim_method = 1} the
+  optimization proceeds as follows:
 
 \enumerate{
 
@@ -158,6 +164,12 @@ When \code{optimization = TRUE}, the optimization proceeds as
    data frame contains the values of \code{data$excl_var} used in the final
    model, and new columns with model coefficients.
 }
+
+  When \code{optimization = TRUE}, and \code{optim_method = 2} the
+  optimization utilizes successive linear models and exclusion of maximum
+  magnitude residuals (at endpoints of the line only) until a model is built
+  with R\eqn{^2} \eqn{\geq} 0.98 or until the number of observations
+  remaining in the model is less than \code{min_n}.
 }
 \seealso{
 \code{\link{ppm_seconds_plot}()}, \code{\link{calib_optim}()},

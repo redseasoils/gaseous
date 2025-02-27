@@ -31,8 +31,15 @@ dat <- dat %>% calculate_gas_loads()
 #' Calculate the CO~2~ + N~2~O + CH~4~ equivalent of CO~2~--C in terms of
 #' greenhouse gas impact.
 dat <- dat %>% mutate(
-  co2_equiv_kg_ha_day = co2_kg_ha_day + (298 * n2o_kg_ha_day) + (25 * ch4_kg_ha_day),
-  co2_equiv_kg_ha_load = co2_kg_ha_load + (298 * n2o_kg_ha_load) + (25 * ch4_kg_ha_load))
+  n2o_co2_equiv_kg_ha_day = 298 * n2o_kg_ha_day_imputed,
+  ch4_co2_equiv_kg_ha_day = 25 * ch4_kg_ha_day_imputed,
+  total_co2_equiv_kg_ha_day = co2_kg_ha_day + (298 * n2o_kg_ha_day) +
+    (25 * ch4_kg_ha_day),
+  n2o_co2_equiv_kg_ha_load = 298 * n2o_kg_ha_load,
+  ch4_co2_equiv_kg_ha_load = 25 * ch4_kg_ha_load,
+  total_co2_equiv_kg_ha_load = co2_kg_ha_load + (298 * n2o_kg_ha_load) +
+    (25 * ch4_kg_ha_load)
+)
 
 #' # View data
 datatable(dat %>% mutate(across(where(is.numeric), ~round(.x, 3))),

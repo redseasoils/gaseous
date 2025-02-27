@@ -17,7 +17,10 @@
 #' @returns \code{data} with updated \code{gas_vars} columns
 #' @export
 #'
-#' @importFrom dplyr `%>%` select
+#' @importFrom dplyr `%>%` select mutate
+#' @importFrom rlang set_names
+#' @importFrom tidyselect all_of
+#' @importFrom purrr map2
 #'
 replace_gas_with_na <- function(
   data,
@@ -26,16 +29,16 @@ replace_gas_with_na <- function(
 ) {
   gas_vars_char <- data %>% dplyr::select({{ gas_vars }}) %>% names()
   excl_vars_char <- data %>% dplyr::select({{ excl_vars }}) %>% names()
-  result <- map2(gas_vars_char, excl_vars_char,
+  result <- purrr::map2(gas_vars_char, excl_vars_char,
                  ~ ifelse(data[[.y]], NA, data[[.x]]) %>%
                    as.data.frame() %>%
-                   set_names(.x))
+                   rlang::set_names(.x))
   # result <- map2(gas_vars_char, excl_vars_char, ~ data %>%
   #                  mutate("{{.x}}" = ifelse({{ .y }} == TRUE, NA, {{ .x }})) %>%
   #                  select({{ .x }}, {{ .y }}))
   result <- data %>%
     select( - {{ gas_vars }}) %>%
-    mutate(bind_cols(result))
-  result <- result %>% select(all_of(names(data)))
+    dplyr::mutate(dplyr::bind_cols(result))
+  result <- result %>% dplyr::select(tidyselect::all_of(names(data)))
   return(result)
 }

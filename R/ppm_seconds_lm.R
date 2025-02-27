@@ -4,13 +4,13 @@
 #'   optimization algorithm to remove endpoints attributable to Gasmet warm-up
 #'   or cool-down.
 #'
-#'   When \code{optimization = TRUE}, the function uses
-#'   \code{\link{calib_optim}()} and \code{\link{calib_range}()} to model
-#'   CO\eqn{_2} data with optimization as described in \code{\strong{Details}}.
-#'   Returns \code{data} with optimized \code{excl_var} column, updated
-#'   \code{attr_var}, and additional columns: \code{co2_rsq},
-#'   \code{co2_intercept}, and \code{co2_slope}, which correspond to the
-#'   R\eqn{^2}, intercept, and slope of the final model, respectively.
+#'   When \code{optimization = TRUE}, the function uses an algorithm to model
+#'   CO\eqn{_2} data with optimization as described in
+#'   \code{\strong{'Details'}}. Returns \code{data} with optimized
+#'   \code{excl_var} column, updated \code{attr_var}, and additional columns:
+#'   \code{co2_rsq}, \code{co2_intercept}, and \code{co2_slope}, which
+#'   correspond to the R\eqn{^2}, intercept, and slope of the final model,
+#'   respectively.
 #'
 #'   When \code{optimization = FALSE} (the default), the function creates a
 #'   linear model of \code{gas_var ~ seconds_var} excluding observations where
@@ -45,13 +45,16 @@
 #'   FALSE}, it will attempt to be inferred from \code{gas_var}.
 #' @param optimization Logical. Whether or not to perform optimization algorithm
 #'   descibed in \code{\strong{Details}}. Defaults to \code{FALSE}.
+#' @param optim_method Double equal to \code{1} or \code{2}. Method \code{2} is
+#'   recommended and the default. Method \code{1} is the legacy method. Ignored
+#'   when \code{optimization = FALSE}.
 #'
 #' @return \code{data} with new columns containing model coefficients and
 #'   updated \code{attr_var}.
 #' @export
 #'
-#' @details When \code{optimization = TRUE}, the optimization proceeds as
-#'   follows:
+#' @details When \code{optimization = TRUE}, and \code{optim_method = 1} the
+#'   optimization proceeds as follows:
 #'
 #' \enumerate{
 #'
@@ -111,6 +114,12 @@
 #'    model, and new columns with model coefficients.
 #' }
 #'
+#'   When \code{optimization = TRUE}, and \code{optim_method = 2} the
+#'   optimization utilizes successive linear models and exclusion of maximum
+#'   magnitude residuals (at endpoints of the line only) until a model is built
+#'   with R\eqn{^2} \eqn{\geq} 0.98 or until the number of observations
+#'   remaining in the model is less than \code{min_n}.
+#'
 #' @seealso \code{\link{ppm_seconds_plot}()}, \code{\link{calib_optim}()},
 #'   \code{\link{calib_range}()}
 #'
@@ -125,7 +134,8 @@ ppm_seconds_lm <- function(
     seconds_var = seconds,
     attr_var = attributes,
     prefix,
-    optimization = FALSE
+    optimization = FALSE,
+    optim_method = 2
 ) {
 
   if (missing(gas_var) && optimization) {
@@ -149,11 +159,11 @@ ppm_seconds_lm <- function(
   # Screen for special cases
 
   # should this be ANY or SUM > MIN_N ??
-  all_na <- all(is.na(mod_data %>% dplyr::pull({{ gas_var }})))
-  all_zero <- all(mod_data %>% dplyr::pull({{ gas_var }}) == 0, na.rm = TRUE)
+  all_na <- all(is.na(mod_data %>% dplyr::pull({{ gas_char }})))
+  all_zero <- all(mod_data %>% dplyr::pull({{ gas_char }}) == 0, na.rm = TRUE)
   non_na_incl <- mod_data %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(n = !is.na({{ gas_var }}) & {{ excl_var }} == FALSE) %>%
+    dplyr::mutate(n = !is.na({{ gas_char }}) & {{ excl_var }} == FALSE) %>%
     dplyr::pull() %>%
     sum()
 
@@ -237,23 +247,135 @@ ppm_seconds_lm_optim <- function(
     seconds_var = seconds,
     attr_var = attributes,
     prefix = 'all',
-    optimization = TRUE
+    optimization = TRUE,
+    optim_method = 2
 ) {
 
+  if (optim_method == 1) {
+    # optimization max iterations
+    max_it <- ifelse(nrow(data) < 100, 1000, nrow(data) * 10)
+    # manual optimization
+    optim_range <- purrr::map(1:max_it, \(.x) {
+      purrr::map((nrow(data)-1):min_n, \(.y) {
+        calib_range(data, {{excl_var}}, .y)
+      })
+    })
+    optim_range <- purrr::list_flatten(optim_range)
+    optim_calib <- purrr::map(optim_range, ~calib_optim(.x, data, {{excl_var}}, min_n)) %>% unlist()
+    optim_loc <- which.min(optim_calib)
+    if (length(optim_loc) > 1) optim_loc <- sample(optim_loc, 1)
+    optim_value <- optim_calib[optim_loc]
+  } else if (optim_method == 2) {
 
-  # optimization max iterations
-  max_it <- ifelse(nrow(data) < 100, 1000, nrow(data) * 10)
+    resid_optim <- function(data, excl_var, min_n) {
+      repeat {
+        new_excl <- data %>% pull({{ excl_var }})
+        incl <- sum(!new_excl)
+        if (incl < min_n) break
 
-  # manual optimization
-  optim_range <- purrr::map(1:max_it, ~ calib_range(data, {{excl_var}}, min_n))
-  optim_calib <- purrr::map(optim_range, ~calib_optim(.x, data, {{excl_var}}, min_n)) %>% unlist()
-  optim_loc <- which.min(optim_calib)
-  if (length(optim_loc) > 1) optim_loc <- sample(optim_loc, 1)
-  optim_value <- optim_calib[optim_loc]
+        co2 <- replace_gas_with_na(data, Carbon.dioxide.CO2, {{ excl_var }}) %>%
+          pull(Carbon.dioxide.CO2)
+        if (all(is.na(co2))) break
+
+        lm <- lm(Carbon.dioxide.CO2 ~ seconds, na.action = na.exclude,
+                 data = replace_gas_with_na(data, Carbon.dioxide.CO2, {{ excl_var }}))
+        rsq <- summary(lm)$r.squared
+        if (is.na(rsq)) rsq <- 0
+        if (rsq >= 0.98) break
+
+        incl_1 <- which(!data %>% pull({{ excl_var }}))[1]
+        incl_2 <- rev(which(!data %>% pull({{ excl_var }})))[1]
+        resid <- resid(lm)[c(incl_1, incl_2)]
+        max <- which.max(abs(unname(resid)))
+        max <- ifelse(max == 1, incl_1, incl_2)
+        new_excl[max] <- TRUE
+        data <- data %>% mutate("{{excl_var}}" := new_excl)
+      }
+      rsq_exists <- exists("rsq")
+      if (!rsq_exists) rsq <- 0
+      if (is.na(rsq)) rsq <- 0
+      if (rsq < 0.98) new_excl <- rep(TRUE, nrow(data))
+      return(new_excl)
+    }
+
+    new_data <- data
+
+    # first try without mode (covers majority zero or equal CO2 case)
+    ux <- unique(new_data$Carbon.dioxide.CO2)
+    tab <- tabulate(match(new_data$Carbon.dioxide.CO2, ux))
+    mode <- ux[tab == max(tab)]
+    if (max(tab) == 1 | length(mode) > 1) mode <- NA
+    nomode_data <- new_data
+    repeat {
+      if (is.na(mode)) break
+      incl_cur <- nomode_data %>%
+        dplyr::filter({{ excl_var }} == FALSE) %>%
+        dplyr::pull(Carbon.dioxide.CO2)
+      if (length(incl_cur) <= min_n) break
+      first_is_mode <- incl_cur[1] == mode
+      last_is_mode <- rev(incl_cur)[1] == mode
+      if (!first_is_mode & !last_is_mode) break
+      excl <- nomode_data %>% pull({{ excl_var }})
+      if (first_is_mode) {
+        first <- which(!excl)[1]
+        first_excl <- excl
+        first_excl[first] <- TRUE
+        nomode_data <- nomode_data %>%
+          mutate("{{excl_var}}" := first_excl)
+      }
+      if (last_is_mode) {
+        last <- rev(which(!excl))[1]
+        last_excl <- excl
+        last_excl[last] <- TRUE
+        nomode_data <- nomode_data %>%
+          mutate("{{excl_var}}" := last_excl)
+      }
+    }
+
+    nomode_excl <- resid_optim(nomode_data, {{ excl_var }}, min_n)
+    nomode_data <- mutate(nomode_data, "{{excl_var}}" := nomode_excl)
+    if (all(nomode_excl)) {
+      nomode_rsq <- 0
+    } else {
+      nomode_lm <- lm(Carbon.dioxide.CO2 ~ seconds, na.action = na.exclude,
+                      data = replace_gas_with_na(nomode_data, Carbon.dioxide.CO2,
+                                                 {{ excl_var }}))
+      nomode_rsq <- summary(nomode_lm)$r.squared
+      if (is.na(nomode_rsq)) nomode_rsq <- 0
+    }
+
+    # try with all data
+    excl <- resid_optim(new_data, {{ excl_var }}, min_n)
+    new_data <- mutate(new_data, "{{excl_var}}" := excl)
+    if (all(excl)) {
+      rsq <- 0
+    } else {
+      lm <- lm(Carbon.dioxide.CO2 ~ seconds, na.action = na.exclude,
+                      data = replace_gas_with_na(new_data, Carbon.dioxide.CO2,
+                                                 {{ excl_var }}))
+      rsq <- summary(lm)$r.squared
+      if (is.na(rsq)) rsq <- 0
+    }
+
+    # choose between no mode and all data options
+    if (rsq < 0.98 & nomode_rsq >= 0.98) {
+      new_excl <- nomode_excl
+      optim_value <- 0
+    } else if (rsq < 0.98) {
+      new_excl <- excl
+      optim_value = 10e6
+    } else {
+      new_excl <- excl
+      optim_value <- 0
+    }
+
+  } else {
+    stop("optim_method must be equal to 1 or 2")
+  }
 
   # failure case 3 : optim failed to build model with rsq >= 0.98, optim
-  # returns 10000000
-  if (optim_value == 10000000) {
+  # returns 10e6
+  if (optim_value == 10e6) {
     result <- data %>%
       dplyr::mutate(
         "{{excl_var}}" := TRUE,
@@ -265,11 +387,14 @@ ppm_seconds_lm_optim <- function(
 
     # success case
   } else {
-    new_exclude <- optim_range[[optim_loc]] %>% as.logical()
-
-    # new_exclude <- as.logical(optim$par)
-
-    new_data <- data %>% dplyr::mutate("{{excl_var}}" := new_exclude)
+    if (optim_method == 1) {
+      new_exclude <- optim_range[[optim_loc]] %>% as.logical()
+      # new_exclude <- as.logical(optim$par)
+      new_data <- data %>% dplyr::mutate("{{excl_var}}" := new_exclude)
+    } else {
+      new_exclude <- new_excl
+      new_data <- data %>% dplyr::mutate("{{excl_var}}" := new_exclude)
+    }
 
     gas_char <- deparse(substitute(gas_var))
     seconds_char <- deparse(substitute(seconds_var))

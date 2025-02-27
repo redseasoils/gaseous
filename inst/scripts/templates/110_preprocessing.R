@@ -30,13 +30,8 @@ conflict_prefer_all('dplyr', quiet = TRUE)
 #' ## Gas concentrations
 #'
 #' List the files that need to be read into R
-conc_files <- list.files(
-  path = "data/00_raw/gas_concentration",
-  recursive = TRUE, # also search subfolders
-  pattern = "\\d+\\.txt$", # files end in numbers.txt
-  ignore.case = TRUE, # ignore capitalization
-  full.names = TRUE # return file name + relative path
-)
+conc_files <- c(Sys.glob("data/00_raw/gas_concentration/*/*/*.txt"),
+                Sys.glob("data/00_raw/gas_concentration/*/*/*.TXT"))
 # Remove 'ghost files'
 conc_files <- conc_files[!str_detect(conc_files, "^~$")]
 head(conc_files)
@@ -45,10 +40,14 @@ head(conc_files)
 conc_list <- lapply(conc_files, read.delim, row.names = NULL)
 
 # Change names of each list entry to site/date/plot using file path
-names(conc_list) <- str_extract(
-  conc_files, "[:alpha:]+/\\d+/\\d+\\.(t|T)(x|X)(t|T)"
-) %>% str_remove(., "\\..+?$")
+names(conc_list) <- paste(
+  str_split_i(conc_files, .Platform$file.sep, 4),
+  str_split_i(conc_files, .Platform$file.sep, 5),
+  str_sub(str_split_i(conc_files, .Platform$file.sep, 6), 1, -5),
+  sep = "/"
+)
 head(names(conc_list))
+any(is.na(names(conc_list))) # Should be FALSE
 
 # Select gas columns, Date, & Time
 gases_cols <- c(

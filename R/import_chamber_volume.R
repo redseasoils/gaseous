@@ -65,8 +65,10 @@ import_chamber_volume <- function(path = 'data/00_raw/chamber_volume') {
       sample_in_length_cm = "sample in length (cm)",
       sample_out_length_cm = "sample out length (cm)",
       chamber_temp_c = "chamber temp (c)",
+      chamber_temp_c = "chamber temp ( c )",
       soil_moisture_pct = "soil moisture (%)",
       soil_temp_c = "soil temp (c)",
+      soil_temp_c = "soil temp ( c )",
       # Old template
       plot = "id",
       collar_height_cm = "collar height",

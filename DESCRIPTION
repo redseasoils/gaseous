@@ -16,7 +16,11 @@ Imports:
     tibble,
     cowplot,
     ggpubr,
-    readxl
+    readxl,
+    janitor,
+    lmerTest,
+    lme4,
+    DT
 RoxygenNote: 7.3.1
 URL: https://github.com/redseasoils/gaseous
 BugReports: https://github.com/redseasoils/gaseous/issues
