@@ -10,9 +10,9 @@ ghg_proj <- function(path, ...) {
 
   # create main subdirectories
   dir.create(paste0(path, '/code'), showWarnings = FALSE)
-  dir.create(paste0(path, '/data/raw/gas_concentration'),
+  dir.create(paste0(path, '/data/00_raw/gas_concentration'),
              recursive = TRUE, showWarnings = FALSE)
-  dir.create(paste0(path, '/data/raw/chamber_volume'), showWarnings = FALSE)
+  dir.create(paste0(path, '/data/00_raw/chamber_volume'), showWarnings = FALSE)
   dir.create(paste0(path, '/keys'), showWarnings = FALSE)
   dir.create(paste0(path, '/templates'), showWarnings = FALSE)
   dir.create(paste0(path, '/instructions'), showWarnings = FALSE)
@@ -84,7 +84,7 @@ ghg_proj <- function(path, ...) {
     site_names_ls <- str_remove_all(site_names_ls, '[:space:]')
     site_names_ls <- str_split(site_names_ls, ',', simplify = TRUE)
 
-    # create directories for each site in data/raw/.../
+    # create directories for each site in data/00_raw/.../
     for (site in site_names_ls) {
       dir.create(paste0(path, '/data/00_raw/gas_concentration/', site),
                  showWarnings = FALSE)
